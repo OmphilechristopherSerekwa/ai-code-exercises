@@ -38,6 +38,10 @@ class TaskManager:
 
         return self.storage.get_all_tasks()
 
+    def export_tasks(self, output_path, status_filter=None, priority_filter=None, show_overdue=False):
+        tasks = self.list_tasks(status_filter, priority_filter, show_overdue)
+        return self.storage.export_tasks_to_csv(output_path, tasks)
+
     def update_task_status(self, task_id, new_status_value):
         new_status = TaskStatus(new_status_value)
         if new_status == TaskStatus.DONE:

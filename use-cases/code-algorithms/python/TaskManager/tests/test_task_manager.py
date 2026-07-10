@@ -590,3 +590,20 @@ class TaskManagerTest(unittest.TestCase):
         self.assertFalse(result)
         task_manager.storage.get_task.assert_called_once_with("non_existent_task_id")
         task_manager.storage.save.assert_not_called()
+
+    def test_export_tasks_calls_storage_export(self):
+        """
+        Test that export_tasks forwards selected tasks to the storage export method.
+        """
+        storage_mock = Mock()
+        task_manager = TaskManager()
+        task_manager.storage = storage_mock
+        selected_tasks = [Mock(), Mock()]
+        task_manager.list_tasks = Mock(return_value=selected_tasks)
+        storage_mock.export_tasks_to_csv.return_value = True
+
+        result = task_manager.export_tasks("out.csv", status_filter="todo")
+
+        self.assertTrue(result)
+        task_manager.list_tasks.assert_called_once_with("todo", None, False)
+        storage_mock.export_tasks_to_csv.assert_called_once_with("out.csv", selected_tasks)

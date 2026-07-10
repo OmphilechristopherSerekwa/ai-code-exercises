@@ -1,4 +1,5 @@
 # task_manager/storage.py
+import csv
 import json
 import os
 from datetime import datetime
@@ -63,6 +64,34 @@ class TaskStorage:
                 json.dump(list(self.tasks.values()), f, cls=TaskEncoder, indent=2)
         except Exception as e:
             print(f"Error saving tasks: {e}")
+
+    def export_tasks_to_csv(self, output_path, tasks=None):
+        tasks = tasks if tasks is not None else self.get_all_tasks()
+        fieldnames = [
+            'id', 'title', 'description', 'status', 'priority',
+            'due_date', 'created_at', 'updated_at', 'completed_at', 'tags'
+        ]
+        try:
+            with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for task in tasks:
+                    writer.writerow({
+                        'id': task.id,
+                        'title': task.title,
+                        'description': task.description,
+                        'status': task.status.value,
+                        'priority': task.priority.name,
+                        'due_date': task.due_date.isoformat() if task.due_date else '',
+                        'created_at': task.created_at.isoformat() if task.created_at else '',
+                        'updated_at': task.updated_at.isoformat() if task.updated_at else '',
+                        'completed_at': task.completed_at.isoformat() if task.completed_at else '',
+                        'tags': ','.join(task.tags) if task.tags else ''
+                    })
+            return True
+        except Exception as e:
+            print(f"Error exporting tasks to CSV: {e}")
+            return False
 
     def add_task(self, task):
         self.tasks[task.id] = task

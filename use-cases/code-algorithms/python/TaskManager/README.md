@@ -12,7 +12,7 @@ git clone <repository-url>
 cd task-manager
 ```
 
-2. No additional installation steps required as the project uses Python standard library.
+2. No additional installation steps are required, since the project uses only Python standard library modules.
 
 ### Run the CLI
 
@@ -41,25 +41,38 @@ python cli.py list --overdue
 3. Update tasks:
 ```bash
 # Update task status
-python cli.py update-status <task_id> <new_status>
+python cli.py status <task_id> <new_status>
 
 # Update task priority
-python cli.py update-priority <task_id> <new_priority>
+python cli.py priority <task_id> <new_priority>
 
-# Update due date
-python cli.py update-due-date <task_id> "2024-02-15"
+# Update task due date
+python cli.py due <task_id> "2024-02-15"
 ```
 
 4. Manage tags:
 ```bash
 # Add a tag
-python cli.py add-tag <task_id> "new-tag"
+python cli.py tag <task_id> "new-tag"
 
 # Remove a tag
-python cli.py remove-tag <task_id> "tag-to-remove"
+python cli.py untag <task_id> "tag-to-remove"
 ```
 
-5. View task details and statistics:
+5. Export tasks to CSV:
+```bash
+# Export all tasks to a CSV file
+python cli.py export tasks.csv
+
+# Export only overdue tasks
+python cli.py export overdue_tasks.csv --overdue
+
+# Export tasks filtered by status or priority
+python cli.py export todo_tasks.csv --status todo
+python cli.py export urgent_tasks.csv --priority 4
+```
+
+6. View task details and statistics:
 ```bash
 # Show task details
 python cli.py show <task_id>

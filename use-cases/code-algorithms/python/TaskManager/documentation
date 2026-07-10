@@ -1,0 +1,271 @@
+Exercise=1
+FORMAL INITIAL understanding.
+
+- According to my understanding this is a Python Task Manager Application that lets users create, manage, and track tasks.
+- It creates tasks with title, description, due date, priority, status, and tags.
+- It does not use a database or external framework; data is persisted to a JSON file.
+- This appears to be a personal productivity tool or a demonstration of task management logic.
+
+2-PROJECT STRUCTURE PROMPT
+
+Understanding Project Structure and Technology Stack:
+
+Initial Understanding:
+- The app is a commandline task manager written in Python.
+- It uses only Python standard library modules: argparse, json, datetime, uuid, re.
+- Tasks are represented by a domain model in `models.py`.
+- Persistnce is handled by file-based JSON in `storage.py`.
+- Business behavior lives in `task_manager.py`.
+- `cli.py` is the userfacing entry point.
+- Helpers provide parsing, scoring,and merge logic.
+
+Questions:
+- Is `cli.py` the only intended entry point, or should there be a library API too?
+- Should `list_tasks()` support combined filters (status + priority + overdue) rather than only one at a time?
+- Is `task_list_merge.py` intended for real synchronization between devices/services or as an example of conflict resolution?
+- Should `task_parser.py` support markers at the start of the text and preserve tag order?
+- Should the README be updated to match the actual CLI command names exactly?
+
+AI Analysis Compared to My Observations:
+- Both agree on a layered architecture: CLI → service → storage → model.
+- Both agree the stack is Python standard library only.
+- The AI identified a CLI/README command mismatch and a filter limitation in `task_manager.py`.
+- The AI also noted that `task_parser.py` regex only matches markers after whitespace.
+
+Misconceptions Corrected:
+- The parser does not correctly parse markers that appear at the beginning of the text.
+- `list_tasks()` currently uses a single filter path instead of combining multiple filters.
+- The README command names differ from the actual `cli.py` subcommands.
+- `TaskStorage.load()` may print an error and fail gracefully if JSON is invalid.
+
+Important Entry Points and Architectural Patterns:
+- `cli.py`: user entry point and command dispatch.
+- `TaskManager` in `task_manager.py`: core business logic and orchestration.
+- `TaskStorage` in `storage.py`: persistence adapter and query methods.
+- Domain model in `models.py`: `Task`, `TaskPriority`, `TaskStatus`.
+- Utility modules: `task_parser.py`, `task_priority.py`, `task_list_merge.py`.
+
+Key Components and Responsibilities:
+- `cli.py`: parse arguments, format output, call service methods.
+- `task_manager.py`: create/list/update/delete tasks, manage tags, compute statistics.
+- `models.py`: task structure, state, completion, overdue behavior.
+- `storage.py`: load/save JSON, handle task retrieval and filtering.
+- `task_parser.py`: convert free-form text into task properties.
+- `task_list_merge.py`: merge local/remote task dictionaries and resolve conflicts.
+- `task_priority.py`: calculate importance and sort tasks by priority.
+
+EXERCISE-2
+
+Finding Feature Implementation Locations:
+
+Initial search:
+- Searched for export or CSV-related functionality in the codebase.
+- Looked for file operations and data transformation utilities in TaskManager modules.
+- Search terms used:
+  - `export`
+  - `csv`
+  - `open(`
+  - `json.dump`
+  - `json.load`
+  - `save(`
+  - `load(`
+  - `write(`
+  - `read(`
+
+Findings:
+- No existing `export` or `csv` feature exists in `use-cases/code-algorithms/python/TaskManager`.
+- File I/O is currently limited to JSON persistence in `storage.py`.
+- `task_manager.py` uses `storage.save()` for persistence but does not expose an export API.
+- `cli.py` has no export command.
+- There is no reusable CSV/file-export utility module yet.
+
+Hypothesis:
+- Task export functionality should belong in `storage.py` as a persistence related feature.
+- `TaskManager should expose this feature through a service method, so CLI and other clients can use it.
+- `cli.py` should add a new `export` subcommand for user access.
+- `models.py` does not need major changes unless a `to_dict()` or rowconversion helper is added.
+
+Analysis and guidance request:
+- Where should task export be implemented?
+- Should the export logic live in `storage.py`, `task_manager.py`, or a new utility module?
+- What existing code patterns are closest to CSV conversion and command registration?
+
+Recommended feature location and approach:
+- Implement CSV export in `storage.py`.
+- Add a wrapper method in `TaskManager` to select tasks and call storage export.
+- Register a new CLI subcommand in `cli.py`.
+- Add tests for storage export, TaskManager export, and CLI command behavior.
+
+Implementation plan:
+1. Add CSV export helper to `storage.py` using Python's built-in `csv` module.
+2. Add a TaskManager method like `export_tasks(output_path, status_filter=None, priority_filter=None, show_overdue=False)`.
+3. Add a CLI command such as `python cli.py export output.csv` with optional filters.
+4. Add tests for CSV file content, export filters, and command parsing.
+
+Related components affected:
+- `storage.py`
+- `task_manager.py`
+- `cli.py`
+- `tests/`
+- `README.md` if command usage is documented
+
+Notes:
+- This is a new feature, not an extension of existing export code.
+- The current architecture supports a clean implementation path through storage, service, and CLI layers.
+
+EXERCISE-3
+
+Understanding Domain Models and Business Conepts:
+
+1. Extract domain model:
+- Core entity classes:
+  - `Task`: the main domain entity representing a work item.
+  - `TaskStatus`: task lifecycle states (`TODO`, `IN_PROGRESS`, `REVIEW`, `DONE`).
+  - `TaskPriority`: urgency categories (`LOW`, `MEDIUM`, `HIGH`, `URGENT`).
+- Business logic found in the domain:
+  - `Task.update(**kwargs)`: updates task properties and refreshes `updated_at`.
+  - `Task.mark_as_done()`: sets status to `DONE`, records `completed_at`, and updates timestamp.
+  - `Task.is_overdue()`: determines overdue state based on `due_date` and `DONE` status.
+- Application-specific concepts:
+  - `tags`: simple string labels attached to tasks.
+  - `due_date`: deadline used for overdue logic and export filtering.
+  - `completed_at`: completion timestamp used for statistics and state.
+
+2. Initial understanding:
+- Entity relationship diagram text sketch:
+  Task
+   ├─ has TaskStatus
+   ├─ has TaskPriority
+   ├─ has due_date, created_at, updated_at, completed_at
+   └─ has tags (list of strings)
+
+- Entity explanations:
+  - `Task`: represents a task item with title, description, priority, status, deadline, and metadata.
+  - `TaskStatus`: indicates progress stage or workflow state for a task.
+  - `TaskPriority`: indicates urgency/importance level for task ordering.
+
+- Questions  confusion:
+  - Does `REVIEW` imply a work review step or just a second-in-progress state?
+  - Can a task move freely between statuses, or should some transitions be restricted?
+  - Does `tags` support duplicates, or should duplicate tags be prevented globally?
+  - Should overdue tasks be considered late only after midnight, or as soon as the due date arrives?
+
+3. Apply the Domain Understanding Prompt:
+- Current understanding:
+  - The domain is centered on task items with lifecycle state and priority.
+  - Business rules are currently simple: mark complete, compute overdue, update metadata.
+  - Persistence and export are separate concerns, not part of the core domain model.
+- Specific questions for testing understanding:
+  1. What role does `TaskStatus.DONE` play in overdue calculation?
+  2. How does `TaskPriority` affect task scoring or sorting in the app?
+  3. Which task fields are considered metadata versus state?
+
+4. Test your knowledge:
+- AI style questions and answers:
+  Q: What happens when `mark_as_done()` is called on a task?
+  A: The task status becomes `DONE`, `completed_at` is set to the current timestamp, and `updated_at` is updated to the completion timestamp.
+
+  Q: Why does `is_overdue()` ignore tasks with status `DONE`?
+  A: Completed tasks are no longer considered overdue even if their due date has passed.
+
+  Q: What is the difference between `created_at` and `updated_at`?
+  A: `created_at` is the task creation time, while `updated_at` changes whenever the task is modified.
+
+5. Glossary of domain terms:
+- `Task`: the primary work item in the system.
+- `TaskStatus`: status categories for task progress.
+- `TaskPriority`: urgency levels for tasks.
+- `due_date`: deadline for completing a task.
+- `completed_at`: timestamp when a task is marked done.
+- `tags`: label values attached to tasks for categorization.
+- `overdue`: a task that passed its `due_date  without being completed.
+- `updated_at`: last modification timestamp.
+
+EXERCISE-4
+
+Practical Application: New Business Rule
+
+Scenario:
+- New rule: "Tasks that are overdue for more than 7 days should be automatically marked as abandoned unless they are marked as high priority."
+
+1. Files to modify:
+- `models.py`: add a new `TaskStatus.ABANDONED` value and possibly update `Task.is_overdue()` or add a new helper like `should_be_abandoned()`.
+- `task_manager.py`: add business logic to identify overdue tasks older than 7 days and update their status when appropriate.
+- `storage.py`: no major changes required beyond saving updated task state, unless abandonment should be processed during load.
+- `cli.py`: optionally add a maintenance command such as `cleanup` or `abandon` to trigger the rule manually.
+- `tests/`: add unit tests for the new status, the abandonment rule, and any maintenance command.
+
+2. Outline of changes:
+- Extend `TaskStatus` with `ABANDONED`.
+- Define the rule clearly in the domain model or service:
+  - A task is abandoned if:
+    - it is not `DONE`,
+    - it has a `due_date`,
+    - the due date is more than 7 days in the past, and
+    - its priority is not high (clarify whether `HIGH` and `URGENT` both qualify).
+- Add a method in `TaskManager` such as `apply_abandonment_rule()` or `mark_overdue_tasks_abandoned()`.
+- Decide where and when this logic runs:
+  - on startup/load,
+  - during a manual cleanup command, or
+  - as part of scheduled maintenance.
+- Ensure abandoned tasks are persisted by `storage.save()` after status changes.
+
+3. Questions to ask the team:
+- Should "high priority" include only `HIGH`, or also `URGENT`?
+- Is `ABANDONED` a permanent final status, or can tasks be restored/reopened?
+- Should the rule run automatically at application startup or only when an explicit cleanup command is invoked?
+- Should abandoned tasks still count as overdue in statistics and reports?
+- Does `due_date` older than 7 days mean strictly more than 7 days ago, or 7 calendar days from due date?
+
+4. Reflection:
+- The AI prompts helpe by making the domain structure explicit and showing where business logic belongs.
+- They clarified that core task state lives in `models.py`, persistence in `storage.py`, and rules/service orchestration in `task_manager.py`.
+- I am still unsure about the intended workflow for status transitions and whether maintenance actions should be user-triggered or automatic.
+- Next steps:
+  - Review existing tests and task lifecycle assumptions.
+  - Confirm status semantics with the team.
+  - Add a small prototype method in `TaskManager` and corresponding tests before updating the CLI.
+
+EXERCISE-5
+
+Final Discussion and Reflection:
+
+1. Group discussion:
+- Approach to understanding the codebase:
+  - Start by identifying the entry points (`cli.py`) and the main layers (`task_manager.py`, `storage.py`, `models.py`).
+  - Read the domain model in `models.py` and follow how tasks are created, updated, and persisted.
+  - Search for keywords related to the feature requirements and business rules.
+- Challenges encountered:
+  - The codebase had no explicit documentation for status transitions or filter behavior.
+  - Some command names in the README did not match the actual CLI implementation.
+  - It was unclear where new business rules should live without a clear domain-service separation.
+- How challenges were overcome:
+  - Used code search to identify actual behavior rather than relying on docs.
+  - Inspected the call graph from CLI to TaskManager to storage.
+  - Kept notes in documentation for the feature design, domain model, and implementation plan.
+- Comparison of different strategies:
+  - Some people may start by running the app and using the CLI interactivel.
+  - Others may inspect tests first to understand expected behavior.
+  - My strategy combined structural code reading with targeted search and promptuided documentation.
+
+2. Personal reflection:
+- Most helpful prompt:
+  - The "Understanding Project Structure and Technology Stack" prompt was most useful for mapping the components and finding the right layer for the feature.
+  - The domain model prompt helped clarify what part of the code is business logic versus persistence.
+- What I would do differently next time:
+  - Start with a quick run of the CLI to confirm the real command names and behavior.
+  - Look at tests earlier to see documented assumptions and edge cases.
+  - Maintain a small architecture sketch from the start to avoid confusion.
+- Additional tools or resources to complement AI prompting:
+  - Running the app or sample commands to verify behavior interactively.
+
+## 6. Next Implementation Steps
+- Implement `TaskStatus.ABANDONED` and the overdue abandonment rule in `models.py` and `task_manager.py`.
+- Add a CLI command or maintenance workflow to apply the abandonment rule explicitly.
+- Extend unit tests to cover abandoned status, rule application, and persistence.
+- Update `README.md` with any new CLI commands and examples.
+- Run the full test suite to verify the new business rule and export behavior.
+  - A code navigation tool for symbol references and call hierarchy.
+  - Better project documentation or a README with architeture notes.
+  - Test coverage reports to identify the most important code paths.
+
